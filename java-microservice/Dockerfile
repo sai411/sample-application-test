@@ -1,22 +1,13 @@
-# ---- Build stage ----
-FROM maven:3.9-eclipse-temurin-17 AS build
+# Build stage
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
-
-# Cache deps
 COPY pom.xml .
-RUN mvn -q -DskipTests dependency:go-offline
-
-# Build
 COPY src ./src
-RUN mvn -q -DskipTests package
+RUN mvn clean package -DskipTests
 
-# ---- Runtime stage ----
-FROM eclipse-temurin:17-jre
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-
-# Default to service name "python" in compose
-ENV PYTHON_SERVICE_URL=http://python:5000
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8081
-
-COPY --from=build /app/target/*.jar /app/app.jar
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
